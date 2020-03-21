@@ -1,5 +1,3 @@
-
-
 library(surveillance)
 
 #Estrutura de interfaces, com code compilado em um soh script, permitindo que se adicionem novas analises rapidamente. 
