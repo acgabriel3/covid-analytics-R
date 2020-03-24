@@ -5,6 +5,7 @@ library(data.table)
 library(geosphere)
 library(stringi)
 library(scales)
+library(dplyr)
 
 formulario <- fread("dados/MODELO CSV FORM - formulario.csv")
 localizacao <- fread("dados/MODELO CSV FORM - localização.csv")
@@ -206,3 +207,63 @@ fwrite(atributos_pessoas,"dados/atributos_locais_normalizados.csv")
 
 #***
 #MANEIRA DE EXIBIR E CONSTRUIR A REDE COM IGRAPH
+
+#***
+#conexao elastic
+
+conn <- connect(host = "localhost", port = 9200)
+
+tryCatch(
+  
+  index_create(conn = conn, 'mapacontagio')
+  
+  , error = function(e) {
+    print(e)
+    #colocar em possivel log o erro
+  }
+) 
+
+
+mapping <- '
+{
+  "properties": {
+  "nome_local" :{
+  "type": "keyword"
+  },
+  "localizacao": {
+  "type": "geo_point"
+  },
+  "contagio": {
+  "type": "boolean"
+  } 
+  }
+}
+
+'
+
+mapping_create(conn = conn, index = "mapacontagio", body = mapping)
+
+colnames(atributos_locais) <- c("no_fantasia", "peso", "contagio")
+
+sender <- atributos_locais %>%
+                        inner_join(ubs)
+
+for(i in 1:nrow(teste)) {
+  
+  content <- '
+  {
+  "localizacao": {
+  "lat": ' %% sender$lat[i] %%',
+  "lon": ' %% sender$long[i] %% '
+  },
+  "nome_local":' %% sender$no_fantasia[i] %% ',
+  "contagio": ' %% sender$contagio[i] %% '
+  }
+  
+  '
+  
+  print(docs_create(conn = conn, index = "mapacontagio", body = content, type = "_doc"))
+  
+}
+
+

@@ -1,18 +1,23 @@
-
 #***
 #Model para index elastic de mapa de calor 
 library(data.table)
 library(elastic)
 
+#operador par concatenacao de strings (soma de strings)
 '%%' <- function(a,b) paste0(a,b)
 
 dadosDf <- fread('dados/pontos_aleatorios_casos_df.csv')
 
 conn <- connect(host = "localhost", port = 9200)
 
-try(
+tryCatch(
+  
   index_create(conn = conn, 'mapacalor')
-)
+  
+  , error = function(e) {
+    print("index ja foi criado")
+  }
+) 
 
 
 mapping <- '
